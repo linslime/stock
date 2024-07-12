@@ -11,7 +11,7 @@ class analyse():
         self.x = []
 
     def load(self):
-        data = pd.read_csv("sample3.csv")
+        data = pd.read_csv("./data/sample3.csv")
         data = data.values
         data = list(map(list, zip(*data)))[0]
         data.sort()
