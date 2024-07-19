@@ -1,52 +1,72 @@
+'''
+针对某一随机测略的多次回测结果，求得最终收益的概率密度分布
+'''
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-class analyse():
-    def __init__(self):
-        self.data = self.load()
-        self.step = 0.1
-        self.start = 0
-        self.y = []
-        self.x = []
+'''
+函数功能 : 加载样本数据，返回一个有序列表
 
-    def load(self):
-        data = pd.read_csv("./data/sample3.csv")
-        data = data.values
-        data = list(map(list, zip(*data)))[0]
-        data.sort()
-        return data
+入参介绍 :
+sample_data_path:样本数据地址
+'''
+def load_sample_data(sample_data_path):
+    data = pd.read_csv(filepath_or_buffer=sample_data_path, header=None)
+    data = data.values
+    data = list(map(list, zip(*data)))[0]
+    data.sort()
+    return data
 
-    def statistics(self):
-        temp = []
-        i = 1
-        j = 0
-        while j < len(self.data):
-            if self.start + i * self.step >= self.data[j]:
-                temp.append(self.data[j])
-                j += 1
-            else :
-                self.y.append(len(temp)/ len(self.data) / self.step)
-                if len(temp) == 0:
-                    self.x.append(self.start + (i - 0.5) * self.step)
-                else:
-                    self.x.append(np.mean(temp))
-                i += 1
-                temp = []
-        self.y.append(len(temp)/ len(self.data) / self.step)
-        self.x.append(np.mean(temp))
+
+'''
+函数功能 : 分析样本数据，得到最终受益的概率密度函数
+
+入参介绍 :
+data : 样本数据
+start : 概率分布统计起始位置
+step : 样本数据统计间隔
+
+出参介绍 :
+x : 利润
+y : 概率密度
+'''
+def analyse(data, start, step):
+    temp = []
+    x = []
+    y = []
+    i = 1
+    j = 0
+    while j < len(data):
+        if start + i * step >= data[j]:
+            temp.append(data[j])
+            j += 1
+        else :
+            y.append(len(temp)/ len(data) / step)
+            if len(temp) == 0:
+                x.append(start + (i - 0.5) * step)
+            else:
+                x.append(np.mean(temp))
+            i += 1
+            temp = []
+    y.append(len(temp)/ len(data) / step)
+    x.append(np.mean(temp))
+    return x, y
+
+
+
 
 if __name__ == "__main__":
-    a = analyse()
-    a.statistics()
+    start = 0
+    step = 0.1
+    file_path = "./data/sample1.csv"
+    data = load_sample_data(file_path)
+    x, y = analyse(data, start, step)
 
     plt.rcParams['font.sans-serif'] = ['SimHei']
     plt.rcParams['axes.unicode_minus'] = False
-    plt.plot(a.x[:int(len(a.x)/18)], a.y[:int(len(a.y)/18)], color="red" ,linewidth=1.0, linestyle="-")  # 将散点连在一起
+    plt.plot(x[:int(len(x)/18)], y[:int(len(y)/18)], color="red" ,linewidth=1.0, linestyle="-")  # 将散点连在一起
     plt.xlabel('利润')
     plt.ylabel('密度')
     plt.show()
-
-    print(max(a.y))
-    print(a.x[a.y.index(max(a.y))])
-    print(len([i for i in a.data if i >= 30]))
