@@ -4,6 +4,7 @@
 
 import akshare as ak
 from multiprocessing import Process, Lock, Value
+import os
 
 '''
 stock_code_list : 表示任务列表，其中包含各个股票的代码
@@ -30,10 +31,20 @@ def get_stock_daily(stock_code_list, index, lock):
 
 
 if __name__ == "__main__":
+    #获取所有沪深京A股股票代码
     stock_zh_a_spot_em_df = ak.stock_zh_a_spot_em()
     stock_code_list = stock_zh_a_spot_em_df['代码'].tolist()
 
-    index = Value('i', 0)  # 定义一个共享整数
+    #获取已完成的股票代码
+    completed_task_list = os.listdir('./data/stock_daily_data/')
+    completed_task_list = [i.split('.')[0] for i in completed_task_list]
+
+    #获取未完成的所有股票代码
+    stock_code_list = list(set(stock_code_list) - set(completed_task_list))
+
+    #股票代码索引，是一个共享变量
+    index = Value('i', 0)
+    #控制同步互斥地访问股票代码索引
     lock = Lock()
     results = []
 
