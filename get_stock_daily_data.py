@@ -1,3 +1,7 @@
+'''
+下载沪深京A股股票的每日数据
+'''
+
 import akshare as ak
 from multiprocessing import Process, Lock, Value
 
