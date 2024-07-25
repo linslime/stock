@@ -7,7 +7,6 @@ import pandas as pd
 import multiprocessing
 import os
 import re
-import time
 
 
 def get_stock_path_list(stock_daily_data_file_path, result_data_file_path):
