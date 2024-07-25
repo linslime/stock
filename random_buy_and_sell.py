@@ -129,8 +129,10 @@ def run(stock_path_list):
         complete_one_task(stock_path)
 
 
-if __name__ == "__main__":
-
+def all_stock():
+    """
+    函数功能 : 完成所有股票的回测
+    """
     # 股票数据目录
     stock_daily_data_file_path = './data/stock_daily_data/'
     # 回测结果数据目录
@@ -153,6 +155,16 @@ if __name__ == "__main__":
 
     for process in processes:
         process.join()
+
+def one_stock():
+    """
+    函数功能 : 完成一个股票的回测
+    """
+    complete_one_task('./data/stock_daily_data/000001.csv')
+
+
+if __name__ == "__main__":
+    all_stock()
 
 
 
