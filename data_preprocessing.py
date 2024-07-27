@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import re
 import numpy as np
+from file_path import FilePath
 
 
 def get_stock_path_list(stock_daily_data_file_path):
@@ -24,7 +25,7 @@ def get_stock_path_list(stock_daily_data_file_path):
     return stock_path_list
 
 
-def get_one_stock_daily_data(data_path):
+def get_one_stock_daily_data(stock_path):
     """
     函数功能 : 根据股票文件目录读取股票文件
 
@@ -34,16 +35,17 @@ def get_one_stock_daily_data(data_path):
     出参 :
     one_stock_daily_data : 股票文件
     """
-    one_stock_daily_data = pd.read_csv(data_path, index_col=0, encoding='GBK')
+    one_stock_daily_data = pd.read_csv(stock_path, index_col=0, encoding='GBK')
     return one_stock_daily_data
 
 
-def remove_empty_data(stock_path_list):
+def remove_empty_data():
     """
     函数功能 ： 删除空白的股票数据
     :param stock_path_list: 每日股票数据目录列表
     :return:
     """
+    stock_path_list = get_stock_path_list(FilePath.stock_daily_data_path)
     for stock_path in stock_path_list:
         one_stock_daily_data = get_one_stock_daily_data(stock_path)
         if one_stock_daily_data.empty:
@@ -65,15 +67,17 @@ def get_stock_daily_data(stock_path_list):
     return all_stock_daily_data
 
 
-def check_nan_number(all_stock_daily_data):
+def check_nan_number():
     """
     函数功能 ： 检查每个股票的数据是否有缺省值，如果有，就返回股票代码和缺省值数量
-    :param all_stock_daily_data: 每个股票的每日数据
     :return: 返回有缺省值的股票代码和相应的缺省值数量
     """
+    stock_path_list = get_stock_path_list(FilePath.stock_daily_data_path)
     nan_dir = {}
-    for stock_code in all_stock_daily_data:
-        nan_number = all_stock_daily_data[stock_code].isnull().sum().sum()
+    for stock_path in stock_path_list:
+        stock_code = re.split(pattern='[\./]', string=stock_path)[-2]
+        stock_daily_data = get_one_stock_daily_data(stock_path)
+        nan_number = stock_daily_data.isnull().sum().sum()
         if nan_number > 0:
             print(stock_code, nan_number)
             nan_dir[stock_code] = nan_number
@@ -129,10 +133,8 @@ def get_date_to_stock_data():
     函数功能 ：多进程完成各个股票的交易日统计，并保存结果
     :return:
     """
-    # 股票数据目录
-    file_path = './data/stock_daily_data/'
     # 股票数据文件目录
-    stock_path_list = get_stock_path_list(file_path)
+    stock_path_list = get_stock_path_list(FilePath.stock_daily_data_path)
 
     # 用于待完成股票数据队列
     stock_path_queue = multiprocessing.Manager().Queue()
@@ -166,7 +168,7 @@ def get_date_to_stock_data():
     # 将数据类型转化为整数
     results = results.astype('int8')
     # 保存结果
-    results.to_csv(path_or_buf='./data/exist.csv', encoding='GBK')
+    results.to_csv(path_or_buf=FilePath.trade_date, encoding='GBK')
     return results
 
 
@@ -175,15 +177,11 @@ def check_exist_csv():
     函数功能 ：判断exist.csv文件是否有问题
     :return:
     """
-    # exist.csv文件目录
-    exist_csv_path = './data/exist.csv'
     # 读取exist.csv文件
-    exist_csv = pd.read_csv(exist_csv_path, index_col=0, encoding='GBK')
+    exist_csv = pd.read_csv(FilePath.trade_date, index_col=0, encoding='GBK')
 
-    # 股票数据目录
-    file_path = './data/stock_daily_data/'
     # 股票数据文件目录
-    stock_path_list = get_stock_path_list(file_path)
+    stock_path_list = get_stock_path_list(FilePath.stock_daily_data_path)
 
     for stock_path in stock_path_list:
         # 用正则表达式得到股票代码
@@ -196,23 +194,24 @@ def check_exist_csv():
         if exist_csv_set != stock_data_set:
             print(stock_code)
 
+
 if __name__ == '__main__':
 
     # 移除所有空数据文件
-    # remove_empty_data(stock_path_list)
+    # remove_empty_data()
 
     # 读取全部股票数据文件
     # all_stock_daily_data = get_stock_daily_data(stock_path_list)
 
     # 检查每一个文件中是否有缺省值
-    # nan_dir = check_nan_number(all_stock_daily_data)
+    # nan_dir = check_nan_number()
 
     # 将每一只股票的日期作为索引
     # set_data_index(all_stock_daily_data)
 
     # 多进程完成各个股票的交易日统计，并保存结果
-    # get_date_to_stock_data()
+    get_date_to_stock_data()
 
     # 检查exist.csv文件是否正确
-    check_exist_csv()
+    # check_exist_csv()
     # print(all_stock_daily_data)
