@@ -7,7 +7,6 @@ from file_path import *
 import pandas as pd
 import os
 import math
-import numpy as np
 
 
 def get_stock_path_list(stock_daily_data_file_path):
@@ -79,30 +78,42 @@ def normalize_min_max(stock_feature: pd.DataFrame) -> pd.DataFrame:
     return (stock_feature - stock_feature.min())/(stock_feature.max() - stock_feature.min())
 
 
-def get_discretize_label(stock_feature: pd.DataFrame) -> pd.DataFrame:
-    discretize_label = pd.DataFrame()
-    normalized_features = normalize_min_max(features)
-    normalized_features_columns = normalized_features.columns
-    for column in normalized_features_columns:
-        label = pd.Series(data=np.zeros(len(normalized_features)), index=stock_feature.index, name=column)
-        label_value = 1
-        level = 1
-        while True:
-            current_stock_code = normalized_features[(normalized_features[column] <= math.pow(10, -1 * level)) & (normalized_features[column] > math.pow(10, -1 * (level + 1)))].index.values
-            level += 1
-            if len(current_stock_code) == 0:
-                continue
-            label[current_stock_code] = label_value
-            label_value += 1
-            residual_stock_code = normalized_features[normalized_features[column] <= math.pow(10, -1 * (level + 1))].index.values
-            if len(residual_stock_code) == 1:
-                label[residual_stock_code] = label_value - 1
-                break
-        discretize_label[column] = label
-    # 将数据类型记为整数
-    discretize_label = discretize_label.astype('int8')
-    discretize_label.to_csv(path_or_buf=FilePath.discretize_label_path, encoding='GBK')
-    return discretize_label
+def get_discretized_feature(stock_feature: pd.DataFrame) -> pd.DataFrame:
+    """
+    函数功能：将特征值离散化，先归一化到0--1，然后取对数
+    :param stock_feature:股票特征值
+    :return:离散化特征值
+    """
+    discretized_feature = pd.DataFrame(index=stock_feature.index, columns=stock_feature.columns)
+    normalized_features = normalize_min_max(stock_feature)
+    for column in discretized_feature.columns:
+        for index in discretized_feature.index:
+            if normalized_features.loc[index, column] != 0:
+                discretized_feature.loc[index, column] = int(abs(math.log(normalized_features.loc[index, column], 10)))
+            else:
+                discretized_feature.loc[index, column] = int(abs(math.log(normalized_features[column].nsmallest(2).iloc[-1], 10)))
+
+    discretized_feature.to_csv(path_or_buf=FilePath.discretize_label_path, encoding='GBK')
+    return discretized_feature
+
+
+def check_discretized_feature(discretized_feature: pd.DataFrame, normalized_features: pd.DataFrame) -> None:
+    """
+    函数功能:检查离散标签是否正确
+    :param discretized_feature:离散化标签
+    :param normalized_features:
+    :return:
+    """
+
+    for index in discretized_feature.index.values:
+        for column in discretized_feature.columns.values:
+            normalize = normalized_features[column][index]
+            discretize = discretized_feature[column][index]
+
+            if not (normalize != 0.0 and normalize <= math.pow(10, -1 * discretize) and normalize > math.pow(10, -1 * (discretize + 1))) and normalize != 0.0:
+                print(i, column)
+                print(normalize)
+                print(discretize)
 
 
 def run(stock_path_queue, lock, result_queue):
@@ -151,5 +162,6 @@ if __name__ == '__main__':
     features = pd.DataFrame(results)
     # features.sort_values(by='价格', inplace=True)
     features.sort_index(inplace=True)
-    get_discretize_label(features)
+    discretize_label = get_discretized_feature(features)
+    check_discretized_feature(discretize_label, normalize_min_max(features))
     features.to_csv(path_or_buf=FilePath.feature_data, encoding='GBK')
