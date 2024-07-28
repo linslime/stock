@@ -8,3 +8,5 @@ class FilePath:
     stock_daily_data_path = './data/stock_daily_data/'
     # 每只股票的交易日
     trade_date = './data/trade_date.csv'
+    # 特征文件目录
+    feature_data = './data/feature_data.csv'
