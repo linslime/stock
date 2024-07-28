@@ -6,6 +6,8 @@ import re
 from file_path import *
 import pandas as pd
 import os
+import math
+import numpy as np
 
 
 def get_stock_path_list(stock_daily_data_file_path):
@@ -68,6 +70,41 @@ def get_turnover_mean(stock_data: pd.DataFrame) -> float:
     return turnover_mean
 
 
+def normalize_min_max(stock_feature: pd.DataFrame) -> pd.DataFrame:
+    """
+    函数功能：将值进行最大最小归一化
+    :param stock_feature: 值
+    :return: 归一化后的结果
+    """
+    return (stock_feature - stock_feature.min())/(stock_feature.max() - stock_feature.min())
+
+
+def get_discretize_label(stock_feature: pd.DataFrame) -> pd.DataFrame:
+    discretize_label = pd.DataFrame()
+    normalized_features = normalize_min_max(features)
+    normalized_features_columns = normalized_features.columns
+    for column in normalized_features_columns:
+        label = pd.Series(data=np.zeros(len(normalized_features)), index=stock_feature.index, name=column)
+        label_value = 1
+        level = 1
+        while True:
+            current_stock_code = normalized_features[(normalized_features[column] <= math.pow(10, -1 * level)) & (normalized_features[column] > math.pow(10, -1 * (level + 1)))].index.values
+            level += 1
+            if len(current_stock_code) == 0:
+                continue
+            label[current_stock_code] = label_value
+            label_value += 1
+            residual_stock_code = normalized_features[normalized_features[column] <= math.pow(10, -1 * (level + 1))].index.values
+            if len(residual_stock_code) == 1:
+                label[residual_stock_code] = label_value - 1
+                break
+        discretize_label[column] = label
+    # 将数据类型记为整数
+    discretize_label = discretize_label.astype('int8')
+    discretize_label.to_csv(path_or_buf=FilePath.discretize_label_path, encoding='GBK')
+    return discretize_label
+
+
 def run(stock_path_queue, lock, result_queue):
     while True:
         lock.acquire()
@@ -76,6 +113,7 @@ def run(stock_path_queue, lock, result_queue):
             lock.release()
             stock_code = re.split(pattern='[\./]', string=stock_path)[-2]
             stock_data = get_one_stock_daily_data(stock_path)
+
             value_mean = get_value_mean(stock_data)
             volume_mean = get_volume_mean(stock_data)
             turnover_mean = get_turnover_mean(stock_data)
@@ -113,5 +151,5 @@ if __name__ == '__main__':
     features = pd.DataFrame(results)
     # features.sort_values(by='价格', inplace=True)
     features.sort_index(inplace=True)
+    get_discretize_label(features)
     features.to_csv(path_or_buf=FilePath.feature_data, encoding='GBK')
-    print(features)
