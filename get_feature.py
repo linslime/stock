@@ -117,6 +117,13 @@ def check_discretized_feature(discretized_feature: pd.DataFrame, normalized_feat
 
 
 def run(stock_path_queue, lock, result_queue):
+    """
+    函数功能：用于多进程完成特征值提取
+    :param stock_path_queue: 共享队列，股票数据目录
+    :param lock: 锁，用户互斥访问共享队列
+    :param result_queue: 共享队列，将结果放入其中
+    :return:
+    """
     while True:
         lock.acquire()
         if not stock_path_queue.empty():
@@ -136,7 +143,11 @@ def run(stock_path_queue, lock, result_queue):
             break
 
 
-if __name__ == '__main__':
+def get_features():
+    """
+    多进程完成特征值计算，并保存结果
+    :return: 无
+    """
     stock_path_list = get_stock_path_list(FilePath.stock_daily_data_path)
 
     stock_path_queue = multiprocessing.Manager().Queue()
@@ -160,8 +171,12 @@ if __name__ == '__main__':
         result = result_queue.get()
         results.append(result)
     features = pd.DataFrame(results)
-    # features.sort_values(by='价格', inplace=True)
     features.sort_index(inplace=True)
+    features.to_csv(path_or_buf=FilePath.feature_data, encoding='GBK')
+
+
+if __name__ == '__main__':
+
+
     discretize_label = get_discretized_feature(features)
     check_discretized_feature(discretize_label, normalize_min_max(features))
-    features.to_csv(path_or_buf=FilePath.feature_data, encoding='GBK')
