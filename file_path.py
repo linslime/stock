@@ -11,4 +11,4 @@ class FilePath:
     # 特征文件目录
     feature_data = './data/feature_data.csv'
     # 离散化标签的地址
-    discretize_label_path = './data/discretize_label.csv'
+    discretized_feature_path = './data/discretized_feature.csv'
