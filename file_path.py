@@ -12,3 +12,7 @@ class FilePath:
     feature_data = './data/feature_data.csv'
     # 离散化标签的地址
     discretized_feature_path = './data/discretized_feature.csv'
+    # 部分股票代码
+    part_stock_code = './data/part_stock_code.csv'
+    # 股票轮动策略结果保存地址
+    multi_stock_rotation = './data/multi_stock_rotation.csv'
