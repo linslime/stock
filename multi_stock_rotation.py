@@ -97,7 +97,9 @@ def multi_stock_rotation(stock_code_list, period, start_date, end_date):
     buy_in.sort_values(by='date', inplace=True)
     # 表示初始资金量
     start_value = 10000
+    # 添加市值列
     buy_in['value'] = start_value
+    # 计算每日市值
     for i in range(1, len(buy_in)):
         current_stock = buy_in['stock_code'].iloc[i]
         previous_stock = buy_in['stock_code'].iloc[i - 1]
@@ -108,6 +110,15 @@ def multi_stock_rotation(stock_code_list, period, start_date, end_date):
             buy_in['value'].iloc[i] = current_value / previous_value * buy_in['value'].iloc[i - 1]
         else:
             buy_in['value'].iloc[i] = buy_in['value'].iloc[i - 1]
+    # 回撤的初始值为0
+    start_drawdown = 0
+    # 创建回撤这一列
+    buy_in['drawdown'] = start_drawdown
+    # 计算每日回撤
+    for i in range(1, len(buy_in)):
+        max_value = buy_in['value'].iloc[:i + 1].max()
+        current_value = buy_in['value'].iloc[i]
+        buy_in['drawdown'].iloc[i] = (max_value - current_value) / max_value
     buy_in.to_csv(path_or_buf=FilePath.multi_stock_rotation, encoding='GBK', sep='\t')
     print(buy_in)
 
