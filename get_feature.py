@@ -2,6 +2,7 @@
 特征工程，给每只股票添加特征
 """
 import multiprocessing
+import random
 import re
 from file_path import *
 import pandas as pd
@@ -25,18 +26,18 @@ def get_stock_path_list(stock_daily_data_file_path):
     return stock_path_list
 
 
-def get_one_stock_daily_data(stock_path):
+def get_one_data(data_path):
     """
-    函数功能 : 根据股票文件目录读取股票文件
+    函数功能 : 根据数据文件目录读取数据文件
 
     入参 :
-    data_path : 股票文件目录
+    data_path : 数据文件目录
 
     出参 :
-    one_stock_daily_data : 股票文件
+    one_stock_daily_data : 数据文件的pandas
     """
-    one_stock_daily_data = pd.read_csv(stock_path, index_col=0, encoding='GBK')
-    return one_stock_daily_data
+    data = pd.read_csv(data_path, index_col=0, encoding='GBK',dtype={'':str})
+    return data
 
 
 def get_value_mean(stock_data: pd.DataFrame) -> float:
@@ -93,7 +94,7 @@ def get_discretized_feature(stock_feature: pd.DataFrame) -> pd.DataFrame:
             else:
                 discretized_feature.loc[index, column] = int(abs(math.log(normalized_features[column].nsmallest(2).iloc[-1], 10)))
 
-    discretized_feature.to_csv(path_or_buf=FilePath.discretize_label_path, encoding='GBK')
+    discretized_feature.to_csv(path_or_buf=FilePath.discretized_feature_path, encoding='GBK')
     return discretized_feature
 
 
@@ -111,7 +112,7 @@ def check_discretized_feature(discretized_feature: pd.DataFrame, normalized_feat
             discretize = discretized_feature[column][index]
 
             if not (normalize != 0.0 and normalize <= math.pow(10, -1 * discretize) and normalize > math.pow(10, -1 * (discretize + 1))) and normalize != 0.0:
-                print(i, column)
+                print(index, column)
                 print(normalize)
                 print(discretize)
 
@@ -130,7 +131,7 @@ def run(stock_path_queue, lock, result_queue):
             stock_path = stock_path_queue.get()
             lock.release()
             stock_code = re.split(pattern='[\./]', string=stock_path)[-2]
-            stock_data = get_one_stock_daily_data(stock_path)
+            stock_data = get_one_data(stock_path)
 
             value_mean = get_value_mean(stock_data)
             volume_mean = get_volume_mean(stock_data)
@@ -172,11 +173,34 @@ def get_features():
         results.append(result)
     features = pd.DataFrame(results)
     features.sort_index(inplace=True)
-    features.to_csv(path_or_buf=FilePath.feature_data, encoding='GBK')
+    features.to_csv(path_or_buf=FilePath.feature_data, encoding='GBK', index_label='stock_code')
+
+
+def get_classification():
+    """
+    函数功能，分类，取元素数量最大的一类
+    :return:
+    """
+    discretized_feature = pd.read_csv(FilePath.discretized_feature_path, encoding='GBK', index_col=0, dtype={'stock_code': str})
+    classification = {}
+    for index in discretized_feature.index.values:
+        key = str(discretized_feature.loc[index, '价格']) + '_' + str(discretized_feature.loc[index, '成交量']) + '_' + str(discretized_feature.loc[index, '成交额'])
+        if key not in classification:
+            classification[key] = []
+        classification[key].append(index)
+    keys = [key for key in classification.keys()]
+    value = [len(classification[key]) for key in keys]
+    max_index = value.index(max(value))
+    return classification[keys[max_index]]
 
 
 if __name__ == '__main__':
-
-
-    discretize_label = get_discretized_feature(features)
-    check_discretized_feature(discretize_label, normalize_min_max(features))
+    # get_features()
+    # features = pd.read_csv(FilePath.feature_data, encoding='GBK', index_col=0, dtype={'stock_code': str})
+    # discretized_feature = get_discretized_feature(features)
+    # check_discretized_feature(discretized_feature, normalize_min_max(features))
+    normal_classification = get_classification()
+    stock_code_list = random.sample(normal_classification, 100)
+    stock_code_list = pd.DataFrame(data=stock_code_list, columns=['stock_code'])
+    stock_code_list.to_csv(FilePath.part_stock_code, index_label='index')
+    print(stock_code_list)
