@@ -168,7 +168,7 @@ def get_date_to_stock_data():
     # 将数据类型转化为整数
     results = results.astype('int8')
     # 保存结果
-    results.to_csv(path_or_buf=FilePath.trade_date, encoding='GBK')
+    results.to_csv(path_or_buf=FilePath.trade_date, encoding='GBK', index_label='date')
     return results
 
 
