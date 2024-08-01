@@ -4,7 +4,7 @@
 import multiprocessing
 import pandas as pd
 from file_path import *
-
+import matplotlib.pyplot as plt
 
 def choice_stock(date, trade_date, stock_data, period):
     """
@@ -121,6 +121,18 @@ def multi_stock_rotation(stock_code_list, period, start_date, end_date):
         buy_in['drawdown'].iloc[i] = (max_value - current_value) / max_value
     buy_in.to_csv(path_or_buf=FilePath.multi_stock_rotation, encoding='GBK', sep='\t')
     print(buy_in)
+
+    plt.plot(buy_in['date'].values.tolist(), buy_in['value'], color="red", linewidth=1.0, linestyle="-")
+    # plt.plot(range(len(y)), y_, color="blue", linewidth=1.0, linestyle="-")
+    plt.xlabel('date')
+    plt.ylabel('value')
+    plt.show()
+
+    plt.plot(buy_in['date'].values.tolist(), buy_in['drawdown'], color="red", linewidth=1.0, linestyle="-")
+    # plt.plot(range(len(y)), y_, color="blue", linewidth=1.0, linestyle="-")
+    plt.xlabel('date')
+    plt.ylabel('drawdoen')
+    plt.show()
 
 
 if __name__ == '__main__':
